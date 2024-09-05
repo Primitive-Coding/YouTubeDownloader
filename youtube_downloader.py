@@ -17,7 +17,7 @@ class YouTubeDownloader:
         self.url = url
         self.yt = YouTube(url)
 
-    def download_video(self, export_path: str, file_name: str = "video.mp4"):
+    def download_video(self, export_path: str, file_name: str = ""):
         """
         Download the video in mp4 format. Does not include audio.
 
@@ -37,9 +37,13 @@ class YouTubeDownloader:
             .desc()
             .first()
         )
+
+        if file_name == "":
+            file_name = self.yt.title
+
         video_stream.download(
             output_path=export_path,
-            filename=file_name,
+            filename=f"{file_name}.mp4",
         )
 
     def download_audio(self, export_path: str, file_name: str = "audio.wav"):
@@ -156,11 +160,13 @@ class YouTubeDownloader:
 
 
 if __name__ == "__main__":
-    url = "https://youtu.be/hWOtqZ8Txto?si=MhIrPDBTG5cVf1Do"
+
+    path = "D:\\Music"
+    url = "https://youtu.be/ZZVMGvFQDMQ?si=1ufFFfdX2UaJUlzY"
     yt = YouTubeDownloader(url)
 
     # yt.download_audio("./test")
-    # yt.download_video("./test")
+    yt.download_video(path)
 
-    df = yt.get_captions()
-    print(f"DF: {df}")
+    # df = yt.get_captions()
+    # print(f"DF: {df}")
