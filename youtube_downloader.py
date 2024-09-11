@@ -11,6 +11,8 @@ from pydub import AudioSegment
 # Data
 import pandas as pd
 
+from moviepy.editor import VideoFileClip, AudioFileClip
+
 
 class YouTubeDownloader:
     def __init__(self, url: str) -> None:
@@ -46,7 +48,7 @@ class YouTubeDownloader:
             filename=f"{file_name}.mp4",
         )
 
-    def download_audio(self, export_path: str, file_name: str = "audio.wav"):
+    def download_audio(self, export_path: str, file_name: str = ""):
         """
         Download the audio for the video. Saves in '.wav' format.
 
@@ -66,11 +68,14 @@ class YouTubeDownloader:
         audio_stream = self.yt.streams.filter(
             only_audio=True, file_extension="mp4"
         ).first()
+        if file_name == "":
+            file_name = self.yt.title
+
         audio_data = io.BytesIO()
         audio_stream.stream_to_buffer(audio_data)
         audio_data.seek(0)
         audio = AudioSegment.from_file(audio_data, format="mp4")
-        audio.export(f"{export_path}/{file_name}", format="wav")
+        audio.export(f"{export_path}/{file_name}.wav", format="wav")
         return audio
 
     def get_captions(self) -> pd.DataFrame:
@@ -122,6 +127,47 @@ class YouTubeDownloader:
         df.drop("index", axis=1, inplace=True)
         return df
 
+    def get_laugther_clips(
+        self,
+        source_video_path: str,
+        export_path: str,
+        source_audio_path: str = "",
+        peripheral_seconds: int = 30,
+    ):
+
+        video = VideoFileClip(source_video_path)
+        video_duration = video.duration
+        if source_audio_path != "":
+            audio = AudioFileClip(source_audio_path)
+            video = video.set_audio(audio)
+            include_audio = True
+        else:
+            include_audio = False
+
+        timestamps = self.get_laughter_timestamps()
+
+        clip = 1
+        for i, row in timestamps.iterrows():
+            anchor_time = self._time_to_seconds(row["start"])
+
+            clip_start = anchor_time - peripheral_seconds
+            clip_end = anchor_time + peripheral_seconds
+
+            if clip_start < 0:
+                clip_start = 0
+
+            if clip_end > video_duration:
+                clip_end = video_duration
+            subclip = video.subclip(clip_start, clip_end)
+            subclip_path = f"{export_path}/clip_{clip}.mp4"
+            subclip.write_videofile(subclip_path, codec="libx264", audio=include_audio)
+            clip += 1
+
+    def get_laughter_timestamps(self):
+        captions = self.get_captions()
+        laughter = captions[captions["text"] == "[Laughter]"]
+        return laughter
+
     def _time_to_milliseconds(self, t) -> int:
         """
         Function to convert HH:MM:SS.MMM to milliseconds
@@ -158,15 +204,10 @@ class YouTubeDownloader:
         time_str = f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}.{int(milliseconds):03}"
         return time_str
 
+    def _time_to_seconds(self, t):
+        h, m, s = map(float, t.split(":"))
+        return h * 3600 + m * 60 + s
+
 
 if __name__ == "__main__":
-
-    path = "D:\\Music"
-    url = "https://youtu.be/ZZVMGvFQDMQ?si=1ufFFfdX2UaJUlzY"
-    yt = YouTubeDownloader(url)
-
-    # yt.download_audio("./test")
-    yt.download_video(path)
-
-    # df = yt.get_captions()
-    # print(f"DF: {df}")
+    pass
