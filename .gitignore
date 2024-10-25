@@ -1,3 +1,5 @@
 venv
 temp
 clips
+.env
+__pycache__
